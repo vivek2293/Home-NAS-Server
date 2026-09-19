@@ -1,0 +1,85 @@
+services:
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:5.2.3_v2.0.14-ls475
+    container_name: qbittorrent
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - WEBUI_PORT=8043
+    volumes:
+      - ./qbittorrent/config:/config
+      - ./qbittorrent/downloads/staging:/downloads
+    ports:
+      - "8043:8043"
+      - "6881:6881"
+      - "6881:6881/udp"
+    # qbittorrent calls the trigger-service via host.docker.internal:9999
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  clamav:
+    image: clamav/clamav:1.4
+    container_name: clamav
+    environment:
+      - CLAMAV_NO_FRESHCLAMD=false
+    volumes:
+      - ./clamav/config:/var/lib/clamav
+      - ./qbittorrent/downloads:/scandir
+    restart: unless-stopped
+
+  # Restricts docker.sock access — only allows exec calls on the clamav container.
+  # trigger-service talks to this proxy instead of the raw docker socket.
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    container_name: docker-socket-proxy
+    environment:
+      - POST=1        # allow all POST requests (exec-create, exec-start)
+      - EXEC=1        # allow /exec/{id}/start and /exec/{id}/json
+      - CONTAINERS=1  # allow GET /containers/{id}/json (name→ID resolution)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - trigger-proxy-net
+    restart: unless-stopped
+
+  trigger-service:
+    build:
+      context: .
+      dockerfile: trigger.Dockerfile
+    container_name: trigger-service
+    environment:
+      - TRIGGER_SECRET=${TRIGGER_SECRET}
+      - DOCKER_HOST=tcp://docker-socket-proxy:2375
+    volumes:
+      - ./trigger_server.py:/app/trigger_server.py:ro
+      - ./qbittorrent/downloads:/downloads
+    ports:
+      - "127.0.0.1:9999:9999"
+    networks:
+      - trigger-proxy-net
+    user: "1000:1000"
+    depends_on:
+      - docker-socket-proxy
+    restart: unless-stopped
+
+  jellyfin:
+    image: jellyfin/jellyfin:10.11.7
+    container_name: jellyfin
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - ./jellyfin/config:/config
+      - ./jellyfin/cache:/cache
+      - ./qbittorrent/downloads/media:/media:ro
+    ports:
+      - "8096:8096"
+    restart: unless-stopped
+
+networks:
+  # Isolated network shared only by trigger-service and the socket proxy.
+  trigger-proxy-net:
+    driver: bridge
