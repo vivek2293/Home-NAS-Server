@@ -16,17 +16,28 @@ A self-hosted, Docker-based home media server stack — download, scan, and stre
 
 | Service | Purpose | Port |
 |---|---|---|
-| **qBittorrent** | Torrent client with web UI | `8043` |
-| **Jellyfin** | Media server for streaming | `8096` |
-| **ClamAV** | Antivirus scan on every download | — |
+| **[qBittorrent](https://www.qbittorrent.org/)** | Torrent client with web UI | `8043` |
+| **[Jellyfin](https://jellyfin.org/)** | Media server for streaming | `8096` |
+| **[ClamAV](https://www.clamav.net/)** | Antivirus scan on every download | — |
 | **trigger-service** | Webhook that auto-scans & moves completed downloads | `9999` (localhost only) |
 | **docker-socket-proxy** | Restricts raw Docker socket access for security | — |
+
+**[qBittorrent](https://www.qbittorrent.org/)** handles all downloading — it's a lightweight, open-source torrent client with a clean web interface, so you can manage downloads from any browser without installing anything extra.
+
+**[Jellyfin](https://jellyfin.org/)** is a free, open-source media server that organises your files into a Netflix-style library and streams them to any device.
+
+**[ClamAV](https://www.clamav.net/)** is an open-source antivirus engine that scans every downloaded file before it reaches your library, keeping your system clean without any manual intervention.
+
+The **trigger-service** is a small custom webhook server that acts as the glue — qBittorrent calls it when a download finishes, and it kicks off the ClamAV scan automatically.
+
+The **docker-socket-proxy** sits between the trigger-service and Docker to ensure that the webhook can only run the scanner, and nothing else — a deliberate security boundary.
+
 
 ### How it works
 
 1. qBittorrent downloads a file to a **staging** directory.
 2. On completion, it calls the **trigger-service** (via `host.docker.internal:9999`).
-3. The trigger-service invokes `scan_and_move.sh`, which runs a **ClamAV** scan.
+3. The trigger-service invokes `scan_and_move.sh`, which runs a **[ClamAV](https://www.clamav.net/)** scan.
 4. Clean files are moved to `media/` (served by Jellyfin). Infected files are moved to `quarantine/`.
 
 ---
@@ -177,7 +188,7 @@ You'll be able to browse and stream your entire library from any device, whether
 **Tip — adding files manually:**
 
 - **Skip the scan:** If you already trust a file (e.g. a personal video or a purchased download), you can drop it directly into `qbittorrent/downloads/media/`. Jellyfin will pick it up automatically — no scan required.
-- **Scan before serving:** If you'd prefer to run it through ClamAV first, place the file in `qbittorrent/downloads/staging/` and then run the scan script manually:
+- **Scan before serving:** If you'd prefer to run it through [ClamAV](https://www.clamav.net/) first, place the file in `qbittorrent/downloads/staging/` and then run the scan script manually:
 
   ```bash
   ./scan_and_move.sh
