@@ -152,6 +152,25 @@ tailscale ping <nas-tailscale-hostname>
 
 ---
 
+### Managing downloads from your phone
+
+qBittorrent's web UI works in any mobile browser — no app needed. Once Tailscale is running, open your browser and navigate to:
+
+```
+https://<tailscale-hostname>:8043
+```
+
+Log in and you can add torrents, monitor progress, and manage your queue from anywhere. The full pipeline then runs automatically:
+
+1. qBittorrent downloads the file to the **staging** directory.
+2. On completion it calls the **trigger-service**, which runs a **ClamAV** scan.
+3. If the scan passes, the file is moved to `media/` — picked up by Jellyfin in **~60 seconds**.
+4. If the scan fails, the file is moved to `quarantine/` and is **never served**.
+
+> You can also trigger an immediate Jellyfin library refresh manually — see the section below.
+
+---
+
 ### Streaming on your phone
 
 Jellyfin has an official Android app — [download it from the Play Store](https://play.google.com/store/apps/details?id=org.jellyfin.mobile). Once Tailscale is set up, open the app and enter your Tailscale address as the server URL:
