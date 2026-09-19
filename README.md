@@ -5,6 +5,9 @@
 
 A self-hosted, Docker-based home media server stack — download, scan, and stream your media from your own hardware. Use [Tailscale](https://tailscale.com) to stream to any of your devices, no matter where you are.
 
+> **Before you begin**
+> This README is structured to guide you through the setup in a deliberate order — each section builds on the previous one. For the smoothest experience, please read through it carefully from top to bottom rather than jumping ahead. Taking a few extra minutes here will save a lot of troubleshooting later.
+
 > **Note on responsible use**
 > BitTorrent is a legitimate file-transfer protocol used to distribute Linux ISOs, open-source software, Creative Commons content, and more. This stack is built around that use case. Downloading copyrighted material without permission is illegal — that's on you, not the tool.
 
@@ -45,7 +48,7 @@ A self-hosted, Docker-based home media server stack — download, scan, and stre
 
 ```bash
 git clone https://github.com/vivek2293/Home-NAS-Server.git
-cd <repo-name>
+cd Home-NAS-Server
 ```
 
 ### 2. Configure environment variables
@@ -83,13 +86,13 @@ Open **http://localhost:8043**, log in with `admin` / `<password from logs>`, an
 In qBittorrent Settings → **Downloads**:
 
 - Tick **"Run on torrent finished"**
-- Set the command to call the trigger-service webhook (authenticated with `TRIGGER_SECRET`):
+- Set the command to call the trigger-service webhook:
 
 ```
-curl -s -X POST http://host.docker.internal:9999/trigger \
-  -H "X-Trigger-Secret: <TRIGGER_SECRET>" \
-  -d '{"name": "%N"}'
+curl -s -X POST http://host.docker.internal:9999/trigger -H "X-Trigger-Secret: <TRIGGER_SECRET>" -d '{"name": "%N"}'
 ```
+
+> Replace `<TRIGGER_SECRET>` with the exact same value you set in your `.env` file.
 
 ### 6. First-time Jellyfin setup
 
@@ -98,11 +101,12 @@ Open **http://localhost:8096** and follow the setup wizard.
 - Add a media library pointing to `/media` (already mounted in the container).
 - Enable **"Allow remote connections to this server"** if you plan to access it outside your LAN.
 
+
 ---
 
 ## Remote Access via Tailscale
 
-[Tailscale](https://tailscale.com) is a zero-config VPN built on WireGuard. Once set up, all your devices — phone, laptop, TV — join a private network and can reach your NAS as if they were on the same WiFi.
+[Tailscale](https://tailscale.com) is a zero-config VPN built on WireGuard. Once set up, all your devices — phone, laptop, TV — join a private network and can reach your NAS as if they were on the same WiFi. Refer to the [Tailscale documentation](https://tailscale.com/docs) for platform-specific installation instructions and advanced configuration.
 
 > **How Tailscale routes traffic**
 > When your device and the NAS are on the same local network, Tailscale automatically uses a **direct peer-to-peer connection** (fast, zero latency overhead). When you're away from home, it routes securely through Tailscale's relay network (DERP) — so streaming always works, wherever you are.
@@ -138,6 +142,20 @@ tailscale ping <nas-tailscale-hostname>
 
 ---
 
+### Streaming on your phone
+
+Jellyfin has an official Android app — [download it from the Play Store](https://play.google.com/store/apps/details?id=org.jellyfin.mobile). Once Tailscale is set up, open the app and enter your Tailscale address as the server URL:
+
+```
+https://<tailscale-hostname>:8096
+```
+
+You'll be able to browse and stream your entire library from any device, whether you're home or away.
+
+> **New files not showing up?** Jellyfin scans for new content automatically, but it can take 30–60 seconds. To trigger an immediate refresh, open the sidebar (tap the three-line menu), go to **Dashboard**, then tap **Scan all libraries**.
+
+---
+
 ## Directory Structure
 
 ```
@@ -156,6 +174,17 @@ tailscale ping <nas-tailscale-hostname>
         ├── media/          # Clean files served by Jellyfin
         └── quarantine/     # Infected files isolated here
 ```
+
+**Tip — adding files manually:**
+
+- **Skip the scan:** If you already trust a file (e.g. a personal video or a purchased download), you can drop it directly into `qbittorrent/downloads/media/`. Jellyfin will pick it up automatically — no scan required.
+- **Scan before serving:** If you'd prefer to run it through ClamAV first, place the file in `qbittorrent/downloads/staging/` and then run the scan script manually:
+
+  ```bash
+  ./scan_and_move.sh
+  ```
+
+  Clean files will be moved to `media/` automatically. Anything suspicious goes to `quarantine/`.
 
 ---
 
@@ -202,7 +231,7 @@ What actually happened.
 
 If this project saved you time or helped you get your home NAS running, a GitHub star goes a long way — it helps others find the project and lets me know it's been useful.
 
-[Star this repo on GitHub](https://github.com/vivek2293/Home-NAS-Server) — thank you!
+[Star this repo on GitHub](https://github.com/vivek2293/Home-NAS-Server/star) — thank you!
 
 ---
 
