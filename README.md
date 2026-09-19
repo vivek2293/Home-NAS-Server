@@ -1,7 +1,6 @@
 # Home NAS Stack
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![GitHub Stars](https://img.shields.io/github/stars/vivek2293/Home-NAS-Server?style=social)](https://github.com/vivek2293/Home-NAS-Server/stargazers)
 
 A self-hosted, Docker-based home media server stack — download, scan, and stream your media from your own hardware. Use [Tailscale](https://tailscale.com) to stream to any of your devices, no matter where you are.
 
@@ -229,9 +228,9 @@ What actually happened.
 
 ## Acknowledgements
 
-If this project saved you time or helped you get your home NAS running, a GitHub star goes a long way — it helps others find the project and lets me know it's been useful.
+Building and maintaining this took a fair amount of time and iteration. If it helped you get your home NAS up and running — or even just saved you an afternoon of research — consider leaving a star. It costs nothing, but it genuinely helps the project reach others who might benefit from it.
 
-[Star this repo on GitHub](https://github.com/vivek2293/Home-NAS-Server/star) — thank you!
+[⭐ Star this repo on GitHub](https://github.com/vivek2293/Home-NAS-Server) — it means a lot, thank you!
 
 ---
 
