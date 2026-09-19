@@ -217,11 +217,55 @@ You'll be able to browse and stream your entire library from any device, whether
 
 ---
 
-## Security Notes
+## Security & System Isolation
 
-- The **docker-socket-proxy** ensures `trigger-service` can only exec into the `clamav` container — it cannot start, stop, or inspect other containers.
-- The trigger endpoint is bound to `127.0.0.1:9999` only — not exposed to the network.
-- Always keep your `TRIGGER_SECRET` private and rotate it if leaked.
+This stack is designed around defense-in-depth, strict isolation, and the principle of least privilege. No service has unrestricted access to the host system or to directories outside its explicit scope.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                               Host Machine                                  │
+│                                                                             │
+│  ┌─────────────────────────┐            ┌────────────────────────────────┐  │
+│  │       qBittorrent       │            │            Jellyfin            │  │
+│  │  • Isolated container   │            │  • Isolated container          │  │
+│  │  • Writes ONLY staging/ │            │  • READ-ONLY access to media/  │  │
+│  │  • No access to host/OS │            │  • Zero write permissions      │  │
+│  └────────────┬────────────┘            └────────────────▲───────────────┘  │
+│               │ (download complete)                      │                  │
+│               ▼                                          │ (scanned clean)  │
+│  ┌─────────────────────────┐            ┌────────────────┴───────────────┐  │
+│  │     trigger-service     │  executes  │             ClamAV             │  │
+│  │  • Localhost (127.0.0.1)│ ─────────► │  • Scans downloads before move │  │
+│  │  • Secret auth required │  via proxy │  • Isolated sandbox engine     │  │
+│  │  • Non-root UID 1000    │            │  • Threats go to quarantine/   │  │
+│  └────────────┬────────────┘            └────────────────────────────────┘  │
+│               │                                                             │
+│               ▼ (restricted API)                                            │
+│  ┌─────────────────────────┐                                                │
+│  │   docker-socket-proxy   │ ──► /var/run/docker.sock (Read-Only)           │
+│  │  • Blocks dangerous ops │                                                │
+│  └─────────────────────────┘                                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 1. Filesystem & Storage Isolation
+- **qBittorrent is sandboxed to `staging/`**: qBittorrent only mounts `./qbittorrent/downloads/staging` as `/downloads`. It cannot write to `media/`, cannot access `quarantine/`, and has zero access to the host filesystem. Even if a downloaded archive contains malicious scripts, it remains contained in `staging/`.
+- **Jellyfin has Read-Only access**: The media folder is mounted into Jellyfin as `:ro` (`./qbittorrent/downloads/media:/media:ro`). Even if Jellyfin or its web client were compromised, it cannot tamper with, overwrite, or delete media files or host data.
+- **ClamAV quarantine gate**: Downloaded files are never moved to `media/` until ClamAV verifies they are clean. Any infected payload is immediately routed into `quarantine/`, isolated from both Jellyfin and the host.
+
+### 2. Docker Socket Protection (docker-socket-proxy)
+- Granting raw Docker socket (`/var/run/docker.sock`) access to a container is equivalent to root on the host. To prevent this, the raw socket is mounted **read-only (`:ro`)** solely to **`docker-socket-proxy`**.
+- The `trigger-service` communicates with Docker only through this proxy over a private bridge network (`trigger-proxy-net`).
+- The proxy strictly limits API endpoints (`EXEC=1`, `POST=1`, `CONTAINERS=1`): it only permits executing commands inside the `clamav` container. It explicitly **blocks** container creation, deletion, volume mounting, privilege escalation, or image modification.
+
+### 3. Process & User Isolation
+- **Non-root container execution**: Services run with explicit non-root user mappings (`PUID=1000`, `PGID=1000`, `user: "1000:1000"`), matching standard unprivileged user permissions.
+- **Read-only code mounts**: The webhook server script (`trigger_server.py`) is mounted read-only (`:ro`), preventing runtime modification.
+
+### 4. Network & Ingress Security
+- **Localhost-only webhook**: The trigger service (`9999`) is bound strictly to `127.0.0.1:9999` and is never exposed to the external network or LAN.
+- **Shared secret authentication**: All calls to the trigger endpoint require a valid `X-Trigger-Secret` header matching `TRIGGER_SECRET`.
+- **Private overlay network**: Tailscale encrypts and authenticates all remote traffic point-to-point via WireGuard, avoiding open public router ports.
 
 ---
 
