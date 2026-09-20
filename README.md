@@ -4,9 +4,6 @@
 
 A self-hosted, Docker-based home media server stack — download, scan, and stream your media from your own hardware. Use [Tailscale](https://tailscale.com) to stream to any of your devices, no matter where you are.
 
-> **Before you begin**
-> This README is structured to guide you through the setup in a deliberate order — each section builds on the previous one. For the smoothest experience, please read through it carefully from top to bottom rather than jumping ahead. Taking a few extra minutes here will save a lot of troubleshooting later.
-
 > **Note on responsible use**
 > BitTorrent is a legitimate file-transfer protocol used to distribute Linux ISOs, open-source software, Creative Commons content, and more. This stack is built around that use case. Downloading copyrighted material without permission is illegal — that's on you, not the tool.
 
@@ -50,18 +47,44 @@ The **docker-socket-proxy** sits between the trigger-service and Docker to ensur
 |---|---|---|
 | [Docker Engine](https://docs.docker.com/get-docker/) | 24.0+ | Linux or Docker Desktop (Windows/macOS) |
 | [Docker Compose](https://docs.docker.com/compose/) | v2.0+ | Comes bundled with Docker Desktop |
+| [Python](https://www.python.org/) | 3.8+ | Required for the automated setup wizard |
 | Bash | Any | Linux native; use WSL2 or Git Bash on Windows |
 | curl | Any | Required for the download trigger command |
-| openssl | Any | Optional — used to generate `TRIGGER_SECRET` |
+| openssl | Any | Optional — used to manually generate `TRIGGER_SECRET` |
 
-### 1. Clone the repo
+---
+
+### Option A: Quick Start (For Lazy People)
+
+If you just want everything up and running without touching config files or manual steps, open your terminal and run:
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/vivek2293/Home-NAS-Server.git
+
+# 2. Enter the directory
+cd Home-NAS-Server
+
+# 3. Run the setup wizard
+python setup.py      # or: python3 setup.py
+```
+
+The wizard takes care of the heavy lifting: verifying prerequisites, creating storage directories, generating security secrets, booting the Docker stack, and configuring service credentials and webhook triggers automatically.
+
+---
+
+### Option B: Manual Setup & Customization (For Control Freaks)
+
+Prefer doing things by hand, or need fine-grained control over every directory, password, and port? Follow the step-by-step instructions below.
+
+#### 1. Clone the repo
 
 ```bash
 git clone https://github.com/vivek2293/Home-NAS-Server.git
 cd Home-NAS-Server
 ```
 
-### 2. Configure environment variables
+#### 2. Configure environment variables
 
 Edit the `.env` file and set your secret:
 
@@ -71,13 +94,13 @@ TRIGGER_SECRET=your_random_secret_here
 
 > Generate a strong secret with: `openssl rand -hex 32`
 
-### 3. Start the stack
+#### 3. Start the stack
 
 ```bash
 docker compose up -d
 ```
 
-### 4. First-time qBittorrent setup
+#### 4. First-time qBittorrent setup
 
 Get the auto-generated password from the logs:
 
@@ -91,7 +114,7 @@ docker logs qbittorrent | findstr /i "password"
 
 Open **http://localhost:8043**, log in with `admin` / `<password from logs>`, and **change your password** immediately via *Settings → Web UI*.
 
-### 5. Configure the download trigger
+#### 5. Configure the download trigger
 
 In qBittorrent Settings → **Downloads**:
 
@@ -104,7 +127,7 @@ curl -s -X POST http://host.docker.internal:9999/trigger -H "X-Trigger-Secret: <
 
 > Replace `<TRIGGER_SECRET>` with the exact same value you set in your `.env` file.
 
-### 6. First-time Jellyfin setup
+#### 6. First-time Jellyfin setup
 
 Open **http://localhost:8096** and follow the setup wizard.
 
