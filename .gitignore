@@ -1,4 +1,7 @@
 /clamav
 /jellyfin
 /qbittorrent
+*__pycache__
+
+
 .env
