@@ -4,6 +4,8 @@
 
 A self-hosted, Docker-based home media server stack — download, scan, and stream your media from your own hardware. Use [Tailscale](https://tailscale.com) to stream to any of your devices, no matter where you are.
 
+Get started with the [Quick Start](#option-a-quick-start-for-lazy-people) or read the full [Setup Guide](#setup).
+
 > **Note on responsible use**
 > BitTorrent is a legitimate file-transfer protocol used to distribute Linux ISOs, open-source software, Creative Commons content, and more. This stack is built around that use case. Downloading copyrighted material without permission is illegal — that's on you, not the tool.
 
@@ -71,11 +73,13 @@ python setup.py      # or: python3 setup.py
 
 The wizard takes care of the heavy lifting: verifying prerequisites, creating storage directories, generating security secrets, booting the Docker stack, and configuring service credentials and webhook triggers automatically.
 
+> **Note:** If the automated setup encounters any issues or fails in your environment, please [open an issue](https://github.com/vivek2293/Home-NAS-Server/issues/new) and follow **Option B** below to complete the setup manually.
+
 ---
 
 ### Option B: Manual Setup & Customization (For Control Freaks)
 
-Prefer doing things by hand, or need fine-grained control over every directory, password, and port? Follow the step-by-step instructions below.
+If you prefer configuring each component yourself, want to see how the stack works under the hood, or need to set things up manually, follow the step-by-step instructions below.
 
 #### 1. Clone the repo
 
