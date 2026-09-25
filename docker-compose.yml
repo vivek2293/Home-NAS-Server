@@ -11,7 +11,7 @@ services:
       - ./qbittorrent/config:/config
       - ./qbittorrent/downloads/staging:/downloads
     ports:
-      - "8043:8043"
+      - "127.0.0.1:8043:8043"
       - "6881:6881"
       - "6881:6881/udp"
     # qbittorrent calls the trigger-service via host.docker.internal:9999
@@ -76,7 +76,7 @@ services:
       - ./jellyfin/cache:/cache
       - ./qbittorrent/downloads/media:/media:ro
     ports:
-      - "8096:8096"
+      - "127.0.0.1:8096:8096"
     restart: unless-stopped
 
 networks:
