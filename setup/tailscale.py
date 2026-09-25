@@ -13,7 +13,7 @@ from .ui import State, log_ok, log_warn, log_info, BOLD, CYAN, DIM, RESET
 
 
 def check_and_setup_tailscale(state: State) -> None:
-    """Detect Tailscale, optionally configure Serve for HTTPS on ports 8043 & 8096."""
+    """Detect Tailscale, optionally configure Serve for HTTPS on ports 443, 8043 & 8096."""
 
     if not shutil.which("tailscale"):
         log_info("Tailscale is not installed on this system.")
@@ -25,7 +25,9 @@ def check_and_setup_tailscale(state: State) -> None:
         print(f"    • Install:  {CYAN}curl -fsSL https://tailscale.com/install.sh | sh{RESET}"
               "  (or visit https://tailscale.com/download)")
         print(f"    • Connect:  {CYAN}sudo tailscale up{RESET}")
-        print(f"    • Expose:   {CYAN}tailscale serve --bg --https=8096 http://localhost:8096{RESET}\n")
+        print(f"    • Expose:   {CYAN}tailscale serve --bg --https=443  http://localhost:8080{RESET}  # Dashboard")
+        print(f"                {CYAN}tailscale serve --bg --https=8043 http://localhost:8043{RESET}  # qBittorrent")
+        print(f"                {CYAN}tailscale serve --bg --https=8096 http://localhost:8096{RESET}  # Jellyfin\n")
         return
 
     # Check if connected
@@ -66,11 +68,23 @@ def check_and_setup_tailscale(state: State) -> None:
 
     print()
     choice = input(
-        "Would you like to expose qBittorrent & Jellyfin securely via Tailscale Serve? [Y/n]: "
+        "Would you like to expose the dashboard, qBittorrent & Jellyfin securely via Tailscale Serve? [Y/n]: "
     ).strip() or "Y"
 
     if choice.lower() == "y":
-        log_info("Configuring Tailscale Serve for HTTPS ports 8043 & 8096...")
+        log_info("Configuring Tailscale Serve for dashboard (443), qBittorrent (8043) & Jellyfin (8096)...")
+
+        # Dashboard on port 443 — the default landing page
+        result = subprocess.run(
+            ["tailscale", "serve", "--bg", "--https=443", "http://localhost:8080"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        if result.returncode != 0:
+            log_warn("Could not configure Tailscale serve for dashboard (port 443) "
+                     "(may require sudo/admin permissions)")
+
+        # Service WebUIs
         for port in (8043, 8096):
             result = subprocess.run(
                 ["tailscale", "serve", "--bg", f"--https={port}", f"http://localhost:{port}"],
@@ -79,7 +93,7 @@ def check_and_setup_tailscale(state: State) -> None:
             )
             if result.returncode != 0:
                 log_warn(
-                    f"Could not configure Tailscale serve for {port} "
+                    f"Could not configure Tailscale serve for port {port} "
                     "(may require sudo/admin permissions)"
                 )
         log_ok("Tailscale remote URLs configured!")

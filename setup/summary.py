@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 import sys
-import time
 
 from .ui import (
     State, log_info,
@@ -25,6 +24,13 @@ def display_summary_and_launch(state: State) -> None:
 
     print(f" {BOLD}Service Dashboard & Access Information:{RESET}")
     print(" -----------------------------------------------------------------")
+
+    # Dashboard
+    if state.tailscale_running and state.tailscale_hostname:
+        print(f" 🏠 {BOLD}Dashboard{RESET} (Landing page):")
+        print(f"    • Tailscale URL:   {hyperlink(f'https://{state.tailscale_hostname}')}")
+        print(f"    {DIM}Links to all services — start here.{RESET}")
+        print()
 
     # qBittorrent
     print(f" 📥 {BOLD}qBittorrent{RESET} (Downloads):")
@@ -57,17 +63,20 @@ def display_summary_and_launch(state: State) -> None:
 
     # Prompt to open browser (only when running interactively)
     if sys.stdin.isatty():
+        if state.tailscale_running and state.tailscale_hostname:
+            dashboard_url = f"https://{state.tailscale_hostname}"
+            prompt_url = dashboard_url
+        else:
+            dashboard_url = "http://localhost:8080"
+            prompt_url = dashboard_url
+
         choice = input(
-            "Would you like to open qBittorrent (http://localhost:8043) and "
-            "Jellyfin (http://localhost:8096) in your browser now? [Y/n]: "
+            f"Would you like to open the dashboard ({prompt_url}) in your browser now? [Y/n]: "
         ).strip() or "Y"
         if choice.lower() == "y":
-            log_info("Opening web interfaces in your default browser...")
-            open_browser("http://localhost:8043")
-            time.sleep(1)
-            open_browser("http://localhost:8096")
+            log_info("Opening dashboard in your default browser...")
+            open_browser(dashboard_url)
     else:
-        open_browser("http://localhost:8043")
-        open_browser("http://localhost:8096")
+        open_browser("http://localhost:8080")
 
     print(f"\n{GREEN}{BOLD}Enjoy your Home NAS! 🚀{RESET}\n")
