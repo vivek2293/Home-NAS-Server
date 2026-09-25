@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none';
+                 script-src 'self';
+                 style-src  'self' https://fonts.googleapis.com;
+                 font-src   https://fonts.gstatic.com;
+                 base-uri   'self';
+                 form-action 'none';" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NAS Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <header>
+    <div class="pill">
+      <span class="pill__dot"></span>
+      <span data-hostname></span>
+    </div>
+    <h1>NAS Dashboard</h1>
+    <p class="subtitle">Your personal media hub</p>
+  </header>
+
+  <div id="services-grid" class="services"></div>
+
+
+  <script src="app.js"></script>
+</body>
+
+</html>

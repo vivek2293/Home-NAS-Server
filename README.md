@@ -15,11 +15,12 @@ Get started with the [Quick Start](#option-a-quick-start-for-lazy-people) or rea
 
 | Service | Purpose | Port |
 |---|---|---|
-| **[qBittorrent](https://www.qbittorrent.org/)** | Torrent client with web UI | `8043` |
-| **[Jellyfin](https://jellyfin.org/)** | Media server for streaming | `8096` |
+| **[qBittorrent](https://www.qbittorrent.org/)** | Torrent client with web UI | `8043` (localhost only) |
+| **[Jellyfin](https://jellyfin.org/)** | Media server for streaming | `8096` (localhost only) |
 | **[ClamAV](https://www.clamav.net/)** | Antivirus scan on every download | — |
 | **trigger-service** | Webhook that auto-scans & moves completed downloads | `9999` (localhost only) |
 | **docker-socket-proxy** | Restricts raw Docker socket access for security | — |
+| **dashboard** | Static landing page — links to all services | `8080` (localhost only) |
 
 **[qBittorrent](https://www.qbittorrent.org/)** handles all downloading — it's a lightweight, open-source torrent client with a clean web interface, so you can manage downloads from any browser without installing anything extra.
 
@@ -136,7 +137,6 @@ curl -s -X POST http://host.docker.internal:9999/trigger -H "X-Trigger-Secret: <
 Open **http://localhost:8096** and follow the setup wizard.
 
 - Add a media library pointing to `/media` (already mounted in the container).
-- Enable **"Allow remote connections to this server"** if you plan to access it outside your LAN.
 
 
 ---
@@ -158,11 +158,14 @@ sudo tailscale up
 ### Expose services over HTTPS
 
 ```bash
-tailscale serve --bg --https=8043 http://localhost:8043   # qBittorrent
-tailscale serve --bg --https=8096 http://localhost:8096   # Jellyfin
+tailscale serve --bg --https=443 http://localhost:8080   # Dashboard  (your default landing page)
+tailscale serve --bg --https=8043 http://localhost:8043  # qBittorrent
+tailscale serve --bg --https=8096 http://localhost:8096  # Jellyfin
 ```
 
-You can then access your services at `https://<tailscale-hostname>:8043` and `https://<tailscale-hostname>:8096` from any device on your tailnet.
+Once configured, open `https://<tailscale-hostname>` in any browser on your tailnet to reach the **dashboard** — it links to all services so you never need to remember a port number.
+
+> **Why all ports are localhost-only:** Every service in this stack binds only to `127.0.0.1`, so they are invisible to devices on the same WiFi or LAN. All remote access goes exclusively through Tailscale's encrypted WireGuard tunnel.
 
 ### Useful commands
 
@@ -221,6 +224,10 @@ You'll be able to browse and stream your entire library from any device, whether
 ├── trigger_server.py       # Webhook server (trigger-service)
 ├── scan_and_move.sh        # ClamAV scan + file routing script
 ├── .env                    # Secrets (not committed)
+├── dashboard/
+│   ├── index.html          # Landing page served at https://<tailscale-hostname>
+│   ├── style.css           # All styles
+│   └── app.js              # Service definitions & DOM renderer
 ├── clamav/config/          # ClamAV virus definitions (auto-updated)
 ├── jellyfin/config/        # Jellyfin config & metadata
 └── qbittorrent/
@@ -290,7 +297,8 @@ This stack is designed around defense-in-depth, strict isolation, and the princi
 - **Read-only code mounts**: The webhook server script (`trigger_server.py`) is mounted read-only (`:ro`), preventing runtime modification.
 
 ### 4. Network & Ingress Security
-- **Localhost-only webhook**: The trigger service (`9999`) is bound strictly to `127.0.0.1:9999` and is never exposed to the external network or LAN.
+- **Localhost-only ports**: Every service WebUI is bound strictly to `127.0.0.1` — qBittorrent (`:8043`), Jellyfin (`:8096`), dashboard (`:8080`), and the trigger webhook (`:9999`) are all invisible to devices on the same WiFi or LAN. Only torrent peer traffic (`:6881`) is left open on all interfaces, as it must be reachable from the internet.
+- **Tailscale as the sole ingress**: All remote access is routed through Tailscale's encrypted WireGuard tunnel. The dashboard at `https://<tailscale-hostname>` acts as a single, memorable entry point.
 - **Shared secret authentication**: All calls to the trigger endpoint require a valid `X-Trigger-Secret` header matching `TRIGGER_SECRET`.
 - **Private overlay network**: Tailscale encrypts and authenticates all remote traffic point-to-point via WireGuard, avoiding open public router ports.
 
